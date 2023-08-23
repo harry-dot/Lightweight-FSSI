@@ -1,1 +1,3 @@
-# THE OFFICIAL IMPLEMENTATION OF THE PAPER "Low-Complexity Speaker Embedding Module with Feature Segmentation, Transformation and Reconstruction for Few-Shot Speaker Identification"
+# THE OFFICIAL IMPLEMENTATION OF "Low-Complexity Speaker Embedding Module with Feature Segmentation, Transformation and Reconstruction for Few-Shot Speaker Identification"
+
+## Coming Soon...
