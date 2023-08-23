@@ -11,13 +11,13 @@ sys.path.append('./net')
 from fun import *
 from networks.Res2Net import *
 from networks.ESBPGnet3 import *
-# from 研二.少样本说话人辨认.fewshot_speaker.InterSpeech2022.train2.data_loader.ESBPGnet_ratio.ESBPGnet_depth import *
+
 from networks.ECAPA_lite import *
-# from 研二.少样本说话人辨认.fewshot_speaker.InterSpeech2022.train2.net2.TDNN.X_Vector import *
+
 from networks.protonet3 import *
-# from 研二.少样本说话人辨认.fewshot_speaker.InterSpeech2022.loader2 import *
+
 from loader_vox import *
-# from 研二.少样本说话人辨认.fewshot_speaker.InterSpeech2022.train2.data_gentor_1 import *
+
 from utils import euclidean_dist,cos_similarity
 from compute_EER import *
 
@@ -38,14 +38,6 @@ class Tester:
         std_root = self.args.std_root
         # build model
         self.model = nn.DataParallel(ESPGnet_subband(channel_num=args.channel_num).cuda())
-        #self.model = nn.DataParallel(ESPGnet_V2(channel_num=4).cuda())
-        #self.model = nn.DataParallel(ESPGnet_OG(channel_num=4).cuda())
-        #self.model = nn.DataParallel(ESPGnet_branch(channel_num=4).cuda())
-        #self.model = nn.DataParallel(ECAPA_TDNN(in_channels=80, channels=144, embd_dim=192).cuda())
-        # self.model = nn.DataParallel(Res2Net(Bottle2neck,[1, 1, 1, 1], 5).cuda())
-        # self.model = nn.DataParallel(Bottleneck(80,80).cuda())
-        #self.model = nn.DataParallel(net().cuda())
-        # self.model = nn.DataParallel(EXvector().cuda())
 
         # data builder
         # default: n-ways m-shots
@@ -56,10 +48,8 @@ class Tester:
         te_DS_n10m5 = B_DS(tr_path,val_path,ts_path, self.args, n=10, m=5, mode='Test')
         te_DS_n10m1 = B_DS(tr_path,val_path,ts_path, self.args, n=10, m=1, mode='Test')
         self.te_DS = [te_DS_n5m1, te_DS_n5m5, te_DS_n10m1, te_DS_n10m5]
-        # self.te_DS = [te_DS_n5m5]
         self.evl_nm = [[5, 1], [5, 5], [10, 1], [10, 5]]
-        # self.evl_nm = [[5, 5]]
-        # load avg and std for Z-score
+
         mean = np.load(mean_root)
         std = np.load(std_root)
         Xavg = torch.from_numpy(mean)
@@ -123,9 +113,7 @@ class Tester:
                     # loss_val = -log_p_y.gather(2, target_inds.cuda()).squeeze().view(-1).mean()
                     _, y_hat = log_p_y.max(2)
                     total += y_hat.size()[0]*y_hat.size()[1]
-                    # print(y_hat)
-                    # print(y_hat.size())
-                    # print(target_inds.squeeze())
+
                     correct += torch.eq(y_hat, target_inds.view(n_class,n_query).cuda()).sum().float()
                 acc_val = correct.item() / total
                 te_print.append(acc_val)

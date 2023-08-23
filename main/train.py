@@ -48,6 +48,39 @@ def get_logger(filename, verbosity=1, name=None):
     return logger
 
 class Trainer:
+    def __init__(self, args):
+        self.args = args
+        tr_path = self.args.tr_path
+        val_path = self.args.val_path
+        ts_path = self.args.ts_path
+        mean_root = self.args.mean_root
+        std_root = self.args.std_root
+        self.theta = self.args.theta
+        self.writer = TensorboardWriter(self.args.writer)
+
+        # model builder
+        # default segmentation I=4
+        self.model =  nn.DataParallel(ESPGnet_subband(channel_num=args.channel_num).cuda())
+            
+
+
+        # data builder
+        # default: n-ways m-shots
+        
+        self.tr_DS = B_DS(tr_path,val_path,ts_path, self.args, n=self.args.way, m=self.args.shot, mode='Training')
+        self.va_DS = B_DS(tr_path,val_path,ts_path,  self.args, n=self.args.way, m=self.args.shot, mode='Valid')
+        self.te_DS_n5m5 = B_DS(tr_path,val_path,ts_path, self.args, n=self.args.way, m=self.args.shot, mode='Test')
+
+        # load avg and std for Z-score
+        mean = np.load(mean_root)
+        std = np.load(std_root)
+        Xavg = torch.from_numpy(mean)
+        Xstd = torch.from_numpy(std)
+
+        self.Xavg, self.Xstd = Variable(Xavg.view(1,1,1).cuda()), Variable(Xstd.view(1,1,1).cuda())
+
+        self.show_dataset_model_params()
+
     def fit(self):
         st = time.time()
         save_dict = {}
@@ -170,198 +203,8 @@ class Trainer:
                 self.Saver()
 
         logger.info('finish training!')
-    def fit_LDP(self):
-        st = time.time()
-        save_dict = {}
-        best_ts_acc = 0
-        best_te_acc = []
-        loss_list = []
-        acc_list = []
-        self.model.train()
-        softmax = torch.nn.Softmax(dim=-1)
-        torch.backends.cudnn.enabled = False
-        if not os.path.exists("/".join(self.args.logger.split("/")[:-1])):
-            os.makedirs("/".join(self.args.logger.split("/")[:-1]))
-        logger = get_logger(self.args.logger)
-        logger.info('start training!')
-        lr = self.args.lr
-        self.optimizer = optim.SGD(self.model.parameters(),
-                                       lr=lr, momentum=self.args.mom, weight_decay=self.args.wd)
-        scheduler = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, [40,70], gamma=0.5, last_epoch=-1)
-        for e in range(1, self.args.ep + 1):
-            # set optimizer (SGD)
-            total_loss = 0
-            
-            print('\n==> Training Epoch #%d lr=%4f Best ts_acc:%f' % (e, lr, best_ts_acc))
-
-            
-            # self.optimizer = optim.Adam(self.model.parameters(), lr=lr, )
-            acc_val = 0
-            total = 0
-            total_loss = 0
-            # Training
-            for batch_idx, (xs, xq,xq_1s) in enumerate(self.tr_DS):
-                n_class = xs.size(1)
-                assert xq.size(1) == n_class
-                n_support = xs.size(2)
-                n_query = xq.size(2)
-                target_inds = torch.arange(0, n_class).view(n_class, 1, 1).expand(n_class, n_query, 1).long()
-                target_inds = Variable(target_inds, requires_grad=False)
-
-                if xq.is_cuda:
-                    target_inds = target_inds.cuda()
-                xs = xs.view(n_class * n_support,80,self.args.fr)
-                xq = xq.view(n_class * n_query,80,self.args.fr)
-                x = torch.cat([xs,xq],0)
-                # print(x.size())
-                # print('xs',xs.size())
-                # print('xq',xq.size())
-                # print('x',x.size())
-                self.optimizer.zero_grad()
-
-                #pred = self.model(x, self.Xavg, self.Xstd)
-                pred = self.model(x)
-                z_dim = pred.size(-1)
-                # print(pred.size())
-                z_proto = pred[:n_class*n_support].view(n_class,n_support,z_dim).mean(1)
-                zq = pred[n_class*n_support:].unsqueeze(0)
-                
-
-
-                xq_1s = xq_1s.contiguous().view(6*n_class*n_query,80,100)
-                xq_1s = self.model(xq_1s)
-                #with torch.no_grad():
-                #    xq_1s = self.Siamese_model(xq_1s)
-                xq_1s = xq_1s.view(6, n_class*n_query, 512)
-                zq = torch.cat((zq,xq_1s),dim=0)
-                zq = zq.contiguous().view(7*n_class*n_query, 512)
-
-
-
-
-                dists = euclidean_dist(zq, z_proto)
-                dists = dists.contiguous().view(7, n_class*n_query, n_class)
-
-                dists_7s = dists[0]
-                dists_1s = dists[1:]
-
-                pro_dists_7s = softmax(-dists_7s)
-
-                dists_1s = dists_1s.contiguous().view(6*n_class*n_query, n_class)
-                pro_dists_1s = softmax(-dists_1s)
-                pro_dists_7s = torch.cat([pro_dists_7s for _ in range(6)], dim=0)
-                self_image_loss = torch.mean(torch.sum(torch.log((pro_dists_1s+1e-6)**(-pro_dists_7s)), dim=1))
-                #sisnr_loss = sisnr(zq,z_proto,n_query)
-                #dists = cos_similarity(zq,z_proto)
-                log_p_y = F.log_softmax(-dists_7s, dim=1).view(n_class, n_query, -1)
-                #log_p_y = F.log_softmax(dists, dim=1).view(n_class, n_query, -1)
-                #loss_val = -log_p_y.gather(2, target_inds.cuda()).squeeze().view(-1).mean() - self.theta*sisnr_loss
-                loss_val = -log_p_y.gather(2, target_inds.cuda()).squeeze().view(-1).mean() + self_image_loss*self.theta
-                _, y_hat = log_p_y.max(2)
-
-                total += y_hat.size()[0] * y_hat.size()[1]
-                acc_val += torch.eq(y_hat, target_inds.view(n_class, n_query).cuda()).sum().float()
-
-                loss_val.backward()
-                self.optimizer.step()
-
-                #with torch.no_grad():
-                #    for param_q, param_k in zip(self.model.parameters(), self.Siamese_model.parameters()):
-
-                #        param_k.data = param_k.data * self.args.m + param_q.data * (1. - self.args.m)
-                sys.stdout.write('\r')
-                sys.stdout.write('| Epoch [%3d/%3d] Iter[%4d/%4d]\tLoss %4f\tTime %d'
-                                 % (e, self.args.ep, batch_idx + 1, len(self.tr_DS),
-                                    loss_val.item(), time.time() - st))
-                sys.stdout.write('| Epoch [%3d/%3d] Iter[%4d/%4d]\tTime %d'
-                                 % (e, self.args.ep, batch_idx + 1, len(self.tr_DS),
-                                    time.time() - st))
-                sys.stdout.flush()
-            sys.stdout.write('\r')
-            print(acc_val.item()/total)
-
-            # Test
-            self.result, va_acc = self.Tester(self.va_DS, 'Valid')
-            self.result, ts_acc = self.Tester(self.te_DS_n5m5, 'Test')
-            logger.info('Epoch:[{}/{}]\t lr:{:.10f}\t loss={:.5f}\t nway:{:.3f}\t mshot:{:.3f}\t val_acc={:.3f}\t ts_acc={:.3f}'.format(e, self.args.ep, lr, loss_val.item(),self.args.way, self.args.shot, va_acc, ts_acc))
-            scheduler.step()
-            if best_ts_acc <= ts_acc:
-                best_ts_acc = ts_acc
-                best_te_acc = self.result
-                self.Saver()
-
-        logger.info('finish training!')
-
-
-    def __init__(self, args):
-        self.args = args
-        # ESC_X, ESC_Y, trvate = load_data(args.dn)
-        # print('ESC_X',ESC_X.shape)
-        # print('ESC_Y',ESC_Y.shape)
-        # tridx, vaidx, teidx = trvate
-        tr_path = self.args.tr_path
-        val_path = self.args.val_path
-        ts_path = self.args.ts_path
-        mean_root = self.args.mean_root
-        std_root = self.args.std_root
-        self.theta = self.args.theta
-        self.writer = TensorboardWriter(self.args.writer)
-        # build model
-        # self.model = nn.DataParallel(EXvector().cuda())
-        # self.model = nn.DataParallel(Gconv().cuda())
-        # self.model = nn.DataParallel(DepthConv().cuda())
-        # self.model = nn.DataParallel(Res2Net(Bottle2neck,[1, 1, 1, 1], 5).cuda())
-        #self.model = nn.DataParallel(ESPGnet_branch(channel_num=4).cuda())
-        if args.train_method == "meta":
-            self.model = ESPGnet_subband(channel_num=args.channel_num)
-            #self.Siamese_model = copy.deepcopy(self.model)
-            self.model = nn.DataParallel(self.model.cuda())
-            #self.Siamese_model = nn.DataParallel(self.Siamese_model.cuda())
-            #self.model = nn.DataParallel(net().cuda())
-        elif args.train_method == "meta_LDP":
-            self.model = ESPGnet(channel_num=4)
-            self.Siamese_model = copy.deepcopy(self.model)
-            
-            self.model = nn.DataParallel(self.model.cuda())
-            self.Siamese_model = nn.DataParallel(self.Siamese_model.cuda())
-        #self.model = ESPGnet(channel_num=4)
-        #self.Siamese_model = copy.deepcopy(model)
-        #self.model = nn.DataParallel(ESPGnet_blstm(channel_num=4).cuda())
-        #self.model = nn.DataParallel(self.model.cuda())
-        #self.Siamese_model = nn.DataParallel(self.Siamese_model.cuda())
-        #self.model = nn.DataParallel(ECAPA_TDNN(80,144,192).cuda())
-        # self.model = nn.DataParallel(net().cuda())
-
-
-        # data builder
-        # default: n-ways m-shots
-        if args.train_method == 'meta':
-            self.tr_DS = B_DS(tr_path,val_path,ts_path, self.args, n=self.args.way, m=self.args.shot, mode='Training')
-        elif args.train_method == 'meta_LDP':
-            self.tr_DS = B_DS(tr_path,val_path,ts_path, self.args, n=self.args.way, m=self.args.shot, mode='Training')
-        self.va_DS = B_DS(tr_path,val_path,ts_path,  self.args, n=self.args.way, m=self.args.shot, mode='Valid')
-        # self.te_DS_n5m5 = B_DS(ESC_X, ESC_Y, teidx, self.args, n=self.args.way, m=self.args.shot, mode='Test')
-        self.te_DS_n5m5 = B_DS(tr_path,val_path,ts_path, self.args, n=self.args.way, m=self.args.shot, mode='Test')
-
-        # self.te_DS = B_DS(ESC_X, ESC_Y, teidx, self.args, n=5, m=5, mode='Test')
-        # te_DS_n5m1 = B_DS(ESC_X, ESC_Y, teidx, self.args, n=5, m=1, mode='Test')
-        # self.te_DS = B_DS(ESC_X, ESC_Y, teidx, self.args, n=10, m=5, mode='Test')
-        # te_DS_n10m5 = B_DS(ESC_X, ESC_Y, teidx, self.args, n=10, m=5, mode='Test')
-        # te_DS_n10m1 = B_DS(ESC_X, ESC_Y, teidx, self.args, n=10, m=1, mode='Test')
-        # self.te_DS = [te_DS_n5m1, te_DS_n5m5, te_DS_n10m1, te_DS_n10m5]
-        # self.te_DS = [te_DS_n5m1, te_DS_n5m5, te_DS_n10m1]
-        # self.evl_nm = [[5, 1], [5, 5], [10, 1], [10, 5]]
-
-        # load avg and std for Z-score
-        mean = np.load(mean_root)
-        std = np.load(std_root)
-        Xavg = torch.from_numpy(mean)
-        Xstd = torch.from_numpy(std)
-
-        self.Xavg, self.Xstd = Variable(Xavg.view(1,1,1).cuda()), Variable(Xstd.view(1,1,1).cuda())
-
-        self.show_dataset_model_params()
-
+    
+    
     def Tester(self, DS, vate):
         st = time.time()
         self.model.eval()

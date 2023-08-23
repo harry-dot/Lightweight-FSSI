@@ -3,12 +3,9 @@ from tester import *
 import logging
 from compute_EER import validate
 # pre_trained model path
-#pmp = '/data/hqs/lightweight_spk_rec/Exp/libri_logger/ESBPGnet_subband1_Ls_0.01Le/7s_10w1s_new/BEST_MODEL'
-# pmp = '/home/ch/pycharm/venv/研二/IEEE/lib_logger/ESBPGnet3/7w5svox1/BEST_MODEL/BEST_MODEL'
-#logger = '/data/hqs/lightweight_spk_rec/Exp/libri_logger/ESBPGnet_subband1_Ls_0.01Le/Lib_test_7s/7s_10w1s_test.log'
+
 
 pmp = '/data/hqs/lightweight_spk_rec/Exp/vox2_logger/ESBPGnet_subband_Ls_0.01Lev1/7s_10w1s_new/BEST_MODEL'
-# pmp = '/home/ch/pycharm/venv/研二/IEEE/lib_logger/ESBPGnet3/7w5svox1/BEST_MODEL/BEST_MODEL'
 logger = '/data/hqs/lightweight_spk_rec/Exp/vox2_logger/ESBPGnet_subband_Ls_0.01Lev2/Vox2_test_7s/7s_10w1s_test.log'
 
 tr_path= '/data/datasets/FSSV_feature/Vox2/Vox2_7s/train'
@@ -17,24 +14,6 @@ val_path = '/data/datasets/FSSV_feature/Vox2/Vox2_7s/test'
 mean_root = '/data/datasets/FSSV_feature/Vox2/Vox2_7s/tr_mean_std/mean.npy'
 std_root = '/data/datasets/FSSV_feature/Vox2/Vox2_7s/tr_mean_std/std.npy'
 
-#tr_path= '/data/datasets/FSSV_feature/Lib2/Lib7s/train'
-#ts_path = '/data/datasets/FSSV_feature/Lib2/Lib7s/test'
-#val_path = '/data/datasets/FSSV_feature/Lib2/Lib7s/test'
-#mean_root = '/data/datasets/FSSV_feature/Lib2/Lib7s/tr_mean_std/mean.npy'
-#std_root = '/data/datasets/FSSV_feature/Lib2/Lib7s/tr_mean_std/std.npy'
-
-#tr_path= '/data/datasets/FSSV_feature/Vox/Vox7s/train'
-#ts_path = '/data/datasets/FSSV_feature/Vox/Vox7s/test'
-#val_path = '/data/datasets/FSSV_feature/Vox/Vox7s/test'
-#mean_root = '/data/datasets/FSSV_feature/Vox/Vox7s/tr_mean_std/mean.npy'
-#std_root = '/data/datasets/FSSV_feature/Vox/Vox7s/tr_mean_std/std.npy'
-
-#tr_path= '/data/datasets/FSSV_feature/Vox2/Vox2_3s/train'
-#ts_path = '/data/datasets/FSSV_feature/Vox2/Vox2_3s/test'
-#val_path = '/data/datasets/FSSV_feature/Vox2/Vox2_3s/test'
-#mean_root = '/data/datasets/FSSV_feature/Vox2/Vox2_3s/tr_mean_std/mean.npy'
-#std_root = '/data/datasets/FSSV_feature/Vox2/Vox2_3s/tr_mean_std/std.npy'
-#
 
 # # params for audio feature extraction (mel-spectrogram)
 parser = argparse.ArgumentParser(description= 'PyTorch Implementation for few-shot sound recognition')
