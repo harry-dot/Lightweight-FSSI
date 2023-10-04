@@ -6,16 +6,14 @@ pmp = '/data/hqs/lightweight_spk_rec/Exp/vox2_logger/ESBPGnet_subband_Ls_0.01Lev
 logger = '/data/hqs/lightweight_spk_rec/Exp/vox2_logger/ESBPGnet_subband_Ls_0.01Lev2/7s_10w1s_new.log'
 writer = '/data/hqs/lightweight_spk_rec/Exp/vox2_logger/ESBPGnet_subband_Ls_0.01Lev2/log_10w1s'
 
-#pmp = '/data/hqs/lightweight_spk_rec/Exp/libri_logger/ESBPGnet_subband16_Ls_0.01Le/7s_10w1s_new' #10w5s
-#logger = '/data/hqs/lightweight_spk_rec/Exp/libri_logger/ESBPGnet_subband16_Ls_0.01Le/7s_10w1s_new.log'
-#writer = '/data/hqs/lightweight_spk_rec/Exp/libri_logger/ESBPGnet_subband16_Ls_0.01Le/log_10w1s'
 
 
-tr_path= '/data/datasets/FSSV_feature/Vox2/Vox2_7s/train'
+# dataset directory
+# change to your own directory when implementing the code
+tr_path= '/data/datasets/FSSV_feature/Vox2/Vox2_7s/train'  
 ts_path = '/data/datasets/FSSV_feature/Vox2/Vox2_7s/test'
 val_path = '/data/datasets/FSSV_feature/Vox2/Vox2_7s/test'
-mean_root = '/data/datasets/FSSV_feature/Vox2/Vox2_7s/tr_mean_std/mean.npy'
-std_root = '/data/datasets/FSSV_feature/Vox2/Vox2_7s/tr_mean_std/std.npy'
+
 
 
 parser = argparse.ArgumentParser(description= 'PyTorch Implementation for few-shot sound recognition')
@@ -31,8 +29,6 @@ parser.add_argument('--et',  default=10000, type=int, help='[fea_ext] spect mant
 parser.add_argument('--tr_path',  default=tr_path, type=str, help='training data root')
 parser.add_argument('--val_path',  default=val_path, type=str, help='training data root')
 parser.add_argument('--ts_path',  default=ts_path, type=str, help='training data root')
-parser.add_argument('--mean_root',  default=mean_root, type=str, help='training data root')
-parser.add_argument('--std_root',  default=std_root, type=str, help='training data root')
 parser.add_argument('--writer',  default=writer, type=str, help='[fea_ext] sample rate')
 parser.add_argument('--bs',   default=1,    type=int,   help='[net] batch size')
 parser.add_argument('--way',  default=10,    type=int,   help='[net] n-way')

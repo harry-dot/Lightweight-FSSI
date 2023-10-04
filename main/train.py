@@ -53,8 +53,6 @@ class Trainer:
         tr_path = self.args.tr_path
         val_path = self.args.val_path
         ts_path = self.args.ts_path
-        mean_root = self.args.mean_root
-        std_root = self.args.std_root
         self.theta = self.args.theta
         self.writer = TensorboardWriter(self.args.writer)
 
@@ -72,12 +70,6 @@ class Trainer:
         self.te_DS_n5m5 = B_DS(tr_path,val_path,ts_path, self.args, n=self.args.way, m=self.args.shot, mode='Test')
 
         # load avg and std for Z-score
-        mean = np.load(mean_root)
-        std = np.load(std_root)
-        Xavg = torch.from_numpy(mean)
-        Xstd = torch.from_numpy(std)
-
-        self.Xavg, self.Xstd = Variable(Xavg.view(1,1,1).cuda()), Variable(Xstd.view(1,1,1).cuda())
 
         self.show_dataset_model_params()
 
