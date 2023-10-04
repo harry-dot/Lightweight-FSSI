@@ -1,0 +1,33 @@
+class Config:
+    
+    model = "ESPGnet_subband"
+    dn = "clean" # 这个参数选择用原始样本还是加噪之后的样本
+    sr = 16000 # [fea_ext] sample rate
+    ws=400 #[fea_ext] windows size
+    hs=200  #[fea_ext] hop sizze
+    mel=39  #[fea_ext] mel bands
+    msc=5    #[fea_ext] top duration of audio clip
+    et=10000#[fea_ext] spect manti
+    tr_path='../datasets/Vox/Vox7s/train'  #training data root
+    val_path='../datasets/Vox/Vox7s/test' #training data root
+    ts_path='../datasets/Vox/Vox7s/test' #training data root
+    val_dir = "/data/datasets/FSSV_feature/data_list/lib.txt" #'[net] logger path')
+    bs=1    #[net] batch size
+    way=10    #[net] n-way
+    shot=1    #[net] m-shot
+    n_query=5    #[net] m-shot
+    x_dim=1 #[net] input channel
+    h_dim=64 #[net] hidden channel
+    z_dim=64 #[net] output channel
+    lrde=20    #[net] divided the learning rate 10 by every lrde epochs
+    mom=0.9   #[net] momentum
+    wd=1e-4  #[net] weight decay
+    lr=0.003   #[net] learning rate
+    fr=699    #[fea_ext] length of audio clip
+    ep=100 #[net] epoch
+    beta=0.3   #[net] hyperparameter for pre-class loss weight
+    pmp='../Exp/vox1_logger/ESBPGnet_subband_Ls_0.01Lev2/7s_10w1s_new/BEST_MODEL'   #[net] save model path
+    logger='../Exp/vox1_logger/ESBPGnet_subband_Ls_0.01Lev2/Vox1_test_7s/7s_10w1s_test.log'   #[net] logger path
+    theta=0.01   #[net] weight of sisnr loss
+    m=0.998   #[net] weight of adam optimizer
+    channel_num=4   #[net] num of segmentation

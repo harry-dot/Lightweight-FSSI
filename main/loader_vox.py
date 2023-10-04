@@ -275,10 +275,9 @@ def B_DS(X,Y,Z, args, n, m, mode='Training', tr_speaker=828, val_speaker=100, ts
         kwargs = {'batch_size': 1, 'num_workers': 8, 'pin_memory': True, #8 
                   'drop_last': True}
         # num = random.randint(0,1000)
-        if args.train_method == 'meta':
-            tr_DS = tr_data(X, args, n, m, mode,tr_speaker)
-        elif args.train_method == 'meta_LDP':
-            tr_DS = tr_data_LDP(X, args, n, m, mode,tr_speaker)
+        
+        tr_DS = tr_data(X, args, n, m, mode,tr_speaker)
+
         # print('tr1',tr_DS.num)num
         # tr_DS.num += 1
         # print('tr',tr_DS.num)

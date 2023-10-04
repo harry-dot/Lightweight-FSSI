@@ -15,18 +15,16 @@ parent_dir_path = os.path.abspath(os.path.join(dir_path, os.pardir))
 sys.path.insert(0, parent_dir_path)
 #sys.path.append('./net')
 from fun import *
-# from 研二.少样本说话人辨认.fewshot_speaker.InterSpeech2022.train2.net2.ESBPGnet.ESBPGnet3 import *
-# from 研二.少样本说话人辨认.fewshot_speaker.InterSpeech2022.train2.data_loader.ESBPGnet_ratio.ESBPGnet_r4 import *
+
 from networks.ECAPA_lite import *
-#from 研二.少样本说话人辨认.fewshot_speaker.InterSpeech2022.train2.net2.ECAPA_lite.ECAPA_TDNN import *
-# from 研二.少样本说话人辨认.fewshot_speaker.InterSpeech2022.train2.net2.TDNN.X_Vector import *
+
 from networks.protonet3 import *
-from networks.ESBPGnet3 import *
-# from 研二.少样本说话人辨认.fewshot_speaker.InterSpeech2022.loader2 import *
+import networks.ESBPGnet3 as ESBPGnets
+
 from loader_vox import *
-# from 研二.少样本说话人辨认.fewshot_speaker.InterSpeech2022.train2.data_gentor_1 import *
+
 from utils import *
-from TensorboardWriter import TensorboardWriter
+
 
 
 def get_logger(filename, verbosity=1, name=None):
@@ -54,13 +52,11 @@ class Trainer:
         val_path = self.args.val_path
         ts_path = self.args.ts_path
         self.theta = self.args.theta
-        self.writer = TensorboardWriter(self.args.writer)
 
         # model builder
         # default segmentation I=4
-        self.model =  nn.DataParallel(ESPGnet_subband(channel_num=args.channel_num).cuda())
+        self.model = nn.DataParallel(getattr(ESBPGnets,self.args.model)(channel_num=args.channel_num).cuda())
             
-
 
         # data builder
         # default: n-ways m-shots
@@ -153,8 +149,7 @@ class Trainer:
 
                 #loss_val = -(1-self.theta)*log_p_y.gather(2, target_inds.cuda()).squeeze().view(-1).mean() - self.theta*sisnr_loss
                 lc = -log_p_y.gather(2, target_inds.cuda()).squeeze().view(-1).mean()
-                if step%5==0 and self.theta>0:
-                    self.writer.log_training(lc,intra_class,inter_class,step)
+    
                 if self.theta>0:
                     loss_val = lc + self.theta*sisnr_loss
                 else:
@@ -279,7 +274,6 @@ class Trainer:
 
     def Saver(self):
         save_dict = {}
-        # directory = '/home/ch/pycharm/venv/研二/少样本说话人辨认/fewshot_speaker/InterSpeech2022/model/Protonet/Voxceleb/'
 
         if not os.path.exists(self.args.pmp):
             os.makedirs(self.args.pmp)

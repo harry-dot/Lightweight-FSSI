@@ -34,8 +34,7 @@ class Tester:
         tr_path = self.args.tr_path
         val_path = self.args.val_path
         ts_path = self.args.ts_path
-        mean_root = self.args.mean_root
-        std_root = self.args.std_root
+
         # build model
         self.model = nn.DataParallel(ESPGnet_subband(channel_num=args.channel_num).cuda())
 
@@ -50,12 +49,7 @@ class Tester:
         self.te_DS = [te_DS_n5m1, te_DS_n5m5, te_DS_n10m1, te_DS_n10m5]
         self.evl_nm = [[5, 1], [5, 5], [10, 1], [10, 5]]
 
-        mean = np.load(mean_root)
-        std = np.load(std_root)
-        Xavg = torch.from_numpy(mean)
-        Xstd = torch.from_numpy(std)
-        self.Xavg, self.Xstd = Variable(Xavg.view(1,1,1).cuda()), Variable(Xstd.view(1,1,1).cuda())
-
+        
         self.show_dataset_model_params()
         self.load_pretrained_model(self.model)
 
