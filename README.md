@@ -16,6 +16,7 @@
  
 + ### Step 1 Data Preparation:
 The V1-set,V2-set and Lib-set used in the paper derive from Voxceleb1,Voxceleb2 and Librispeech respectively, the statistics of which are as follow. 
+
 ![datasets](./dataset.png)
 
 We provide the script for generating the three sets. To run it, please download Voxceleb1 and Voxceleb2 from [here](https://www.robots.ox.ac.uk/~vgg/data/voxceleb/) and change *yourPATH* in the script to your local path, then run
